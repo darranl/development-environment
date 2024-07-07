@@ -1,0 +1,25 @@
+# We always want to start from the latest stable Fedora image.
+FROM registry.fedoraproject.org/fedora:latest
+LABEL org.opencontainers.image.authors="<a href="mailto:darran@lofthouse.me.uk">Darran Lofthouse</a>"
+LABEL org.opencontainers.image.source=https://github.com/darranl/development-environment
+LABEL org.opencontainers.image.description="Base image to enable SSH access"
+
+RUN dnf -y upgrade
+
+RUN dnf -y install openssh-server procps-ng && \
+    printf "Port 22\nListenAddress localhost\nPermitEmptyPasswords yes\n" >> /etc/ssh/sshd_config \
+	&& /usr/libexec/openssh/sshd-keygen rsa \
+	&& /usr/libexec/openssh/sshd-keygen ecdsa \
+	&& /usr/libexec/openssh/sshd-keygen ed25519 \
+    && dnf clean all \
+    && systemctl enable sshd
+
+EXPOSE 22
+
+# Add the developer account
+RUN useradd developer -G wheel \
+    && mkdir /home/developer/.ssh \
+    && chown developer:developer /home/developer/.ssh \
+    && chmod 700 /home/developer/.ssh
+
+CMD [ "/sbin/init" ]
